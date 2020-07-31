@@ -85,7 +85,7 @@ def extract_features(raw_data):
                 features.append(0)
             elif char == '+':
                 features.append(1)
-            else:
+            elif char == '#':
                 features.append(2)
     return features
 
@@ -93,7 +93,7 @@ def read_labeled_images(mode, image_type):
     """Reads data and label files and compiles them into an array of labeled images."""
     raw_data = read_image_data(mode, image_type)
     labels = read_label_data(mode, image_type)
-    feature_data = extract_features(raw_data)
+    feature_data = map(extract_features, raw_data)
     return [LabeledImage(features, label) for (features, label) in zip(feature_data, labels)]
 
 if __name__ == '__main__':
