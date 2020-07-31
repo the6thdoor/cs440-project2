@@ -30,7 +30,7 @@ class ImageType(int, Enum):
     DIGIT = (0, 28)
     FACE = (1, 70)
 
-class Mode(str, Enum):
+class Mode(int, Enum):
     """A representation of the mode of the image, either training, validation, or test.
 
     Attributes
@@ -39,7 +39,7 @@ class Mode(str, Enum):
         the string in the mode's file path which corresponds to the image mode
     """
     def __new__(cls, value, path_infix):
-        obj = str.__new__(cls, value)
+        obj = int.__new__(cls, value)
         obj._value_ = value
         obj.path_infix = path_infix
         return obj
