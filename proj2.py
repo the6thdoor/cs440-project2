@@ -3,6 +3,7 @@ from os import sys
 from collections import namedtuple
 from enum import Enum
 import numpy as np
+import math
 # A labeled image is a pair of features together with its label.
 LabeledImage = namedtuple('LabeledImage', ['features', 'label'])
 
@@ -105,12 +106,37 @@ def NaiveBayes(type):
         validationdata = read_image_data(Mode.VALIDATION, ImageType.FACE)
         validationlabels = read_label_data(Mode.VALIDATION, ImageType.FACE)
         cats = 2
-    for i in range(cats):
-        # do stuff. Still need to code this
+    for i in range(len(validationdata)):
+        image = validationdata[i]
+        max = -math.inf
+        maxcat = -1
+        prob = 0
+        features = extract_features(image)
+        for j in range (cats):
+            index = 0
+            for f in features:
+                temp = calcFeatureProb(f, index, j, traindata, trainlabels)
+                if temp != 0:
+                    prob += math.log(temp)
+                index += 1
+            temp = (calcPrior(j, trainlabels))
+            if temp != 0:
+                print(temp)
+                prob += math.log(temp)
+            if prob > max:
+                max = prob
+                maxcat = j
+        labels.append(maxcat)
+    return (labels)
+
+
+
+
 
 if __name__ == '__main__':
     #print(calcPrior(5, read_label_data(Mode.TRAINING, ImageType.DIGIT)))
     print(calcFeatureProb(0,400,9,read_image_data(Mode.TRAINING, ImageType.DIGIT),read_label_data(Mode.TRAINING, ImageType.DIGIT)))
+    print(NaiveBayes("DIGIT"))
 
 
 
