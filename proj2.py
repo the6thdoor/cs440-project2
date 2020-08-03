@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Implementation of the Naive Bayes classifier."""
-from os import sys
 from collections import namedtuple
 from enum import Enum
 import math
@@ -59,6 +58,8 @@ def parse_path(mode, image_type, is_label):
     suffix = "labels" if is_label else ("images" if image_type == ImageType.DIGIT else "")
     if image_type == ImageType.DIGIT:
         return f"data/digitdata/{mode.path_infix}{suffix}"
+    if mode == Mode.TRAINING:
+        return f"data/facedata/facedatatrain{suffix}"
     return f"data/facedata/facedata{mode.path_infix}{suffix}"
 
 def read_image_data(mode, image_type):
@@ -161,10 +162,26 @@ def check_correctness(classifier_out, mode, image_type):
     print(f'Got {num_correct} out of {total} correct: {(num_correct / total) * 100}%')
 
 if __name__ == '__main__':
-    if sys.argv[1] == 'debug':
-        print('hi!')
-    else:
-        # print('Select an image type, either [d]igit or [f]ace:')
-        # classifier_out = train_naive_bayes(sys.argv[1])
-        # print(naive_bayes(ImageType.DIGIT))
-        print('Command line API coming')
+    SELECT_IMAGE_TYPE = 'y'
+    while SELECT_IMAGE_TYPE in ('y', 'Y'):
+        img_type_str = input('Select an image type, either [d]igit or [f]ace: ')
+        while img_type_str not in ('d', 'f', 'D', 'F'):
+            img_type_str = input('Invalid image type. Please select either [d]igit or [f]ace: ')
+        img_type = ImageType.DIGIT if img_type_str == 'd' else ImageType.FACE
+        dat = train_naive_bayes(img_type)
+        SELECT_IMAGE_MODE = 'y'
+        while SELECT_IMAGE_MODE in ('y', 'Y'):
+            check_img_mode_str = input('Would you like to use [v]alidation or [t]est data? ')
+            while check_img_mode_str not in ('v', 't', 'V', 'T'):
+                check_img_mode_str = input('Invalid image mode. Select [v]alidation or [t]est: ')
+            TEST_NEW_IMAGES = 'y'
+            while TEST_NEW_IMAGES in ('y', 'Y'):
+                check_img_mode = Mode.VALIDATION if check_img_mode_str == 'v' else Mode.TEST
+                images_str = input('Enter a range of indices to test, e.g. 2,4: ').split(',')
+                images = range(int(images_str[0]), int(images_str[1]))
+                output = classify_naive_bayes(dat, check_img_mode, images)
+                check_correctness(output, check_img_mode, img_type)
+                TEST_NEW_IMAGES = input('Would you like to test a new range? [y/n] ')
+            SELECT_IMAGE_MODE = input('Would you like to test a different mode? [y/n] ')
+        SELECT_IMAGE_TYPE = input('Would you like to test a different image type? [y/n] ')
+    print('Done. Exiting...')
