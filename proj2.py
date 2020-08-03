@@ -88,7 +88,7 @@ def extract_features(raw_data):
                 features.append(1)
             elif char == '#':
                 features.append(2)
-    return features
+    return np.array(features)
 
 def read_labeled_images(mode, image_type):
     """Reads data and label files and compiles them into an array of labeled images."""
@@ -105,24 +105,25 @@ def calc_prior(value, data):
     print(len(labels))
     return count/len(labels)
 
-def calc_feature_probs(value, image_data):
+def calc_feature_probs(value, image_data, smoothing):
     """Computes the conditional probability for each feature-pixel pair, given a certain label."""
     value_images = [image.features for image in image_data if image.label == value]
     total_occurrences = len(value_images)
     total_pixels = len(value_images[0])
-    counts = np.zeros((3, total_pixels))
+    counts = np.full((3, total_pixels), smoothing)
     for feature in range(3):
         for image_index in range(total_occurrences):
             for pixel_index in range(len(value_images[0])):
                 if value_images[image_index][pixel_index] == feature:
                     counts[feature][pixel_index] += 1
-    return np.array([count_sub / total_pixels for count_sub in counts])
+    denominator = total_occurrences + (smoothing * 3)
+    return np.array([count_sub / denominator for count_sub in counts])
 
-def train_naive_bayes(image_type):
+def train_naive_bayes(image_type, smoothing):
     """Uses the training data of the image type to assemble Bayesian probability data."""
     print('Training classifier...')
     training_data = read_labeled_images(Mode.TRAINING, image_type)
-    conditionals = [calc_feature_probs(val, training_data) for val in range(image_type.categories)]
+    conditionals = [calc_feature_probs(val, training_data, smoothing) for val in range(image_type.categories)]
     priors = np.array([calc_prior(val, training_data) for val in range(image_type.categories)])
     print(f'Trained classifier for image type = {image_type.name}')
     return {'image_type': image_type, 'conditionals': conditionals, 'priors': priors}
@@ -162,26 +163,34 @@ def check_correctness(classifier_out, mode, image_type):
     print(f'Got {num_correct} out of {total} correct: {(num_correct / total) * 100}%')
 
 if __name__ == '__main__':
-    SELECT_IMAGE_TYPE = 'y'
-    while SELECT_IMAGE_TYPE in ('y', 'Y'):
-        img_type_str = input('Select an image type, either [d]igit or [f]ace: ')
-        while img_type_str not in ('d', 'f', 'D', 'F'):
-            img_type_str = input('Invalid image type. Please select either [d]igit or [f]ace: ')
-        img_type = ImageType.DIGIT if img_type_str == 'd' else ImageType.FACE
-        dat = train_naive_bayes(img_type)
-        SELECT_IMAGE_MODE = 'y'
-        while SELECT_IMAGE_MODE in ('y', 'Y'):
-            check_img_mode_str = input('Would you like to use [v]alidation or [t]est data? ')
-            while check_img_mode_str not in ('v', 't', 'V', 'T'):
-                check_img_mode_str = input('Invalid image mode. Select [v]alidation or [t]est: ')
-            TEST_NEW_IMAGES = 'y'
-            while TEST_NEW_IMAGES in ('y', 'Y'):
-                check_img_mode = Mode.VALIDATION if check_img_mode_str == 'v' else Mode.TEST
-                images_str = input('Enter a range of indices to test, e.g. 2,4: ').split(',')
-                images = range(int(images_str[0]), int(images_str[1]))
-                output = classify_naive_bayes(dat, check_img_mode, images)
-                check_correctness(output, check_img_mode, img_type)
-                TEST_NEW_IMAGES = input('Would you like to test a new range? [y/n] ')
-            SELECT_IMAGE_MODE = input('Would you like to test a different mode? [y/n] ')
-        SELECT_IMAGE_TYPE = input('Would you like to test a different image type? [y/n] ')
-    print('Done. Exiting...')
+    DEBUG_MODE = input('Skip execution for interactive debugging? [y/n] ')
+    if DEBUG_MODE in ('y', 'Y'):
+        print('Welcome.')
+    else:
+        SELECT_IMAGE_TYPE = 'y'
+        while SELECT_IMAGE_TYPE in ('y', 'Y'):
+            img_type_str = input('Select an image type, either [d]igit or [f]ace: ')
+            while img_type_str not in ('d', 'f', 'D', 'F'):
+                img_type_str = input('Invalid image type. Please select either [d]igit or [f]ace: ')
+            img_type = ImageType.DIGIT if img_type_str == 'd' else ImageType.FACE
+            SELECT_NEW_SMOOTHING = 'y'
+            while SELECT_NEW_SMOOTHING in ('y', 'Y'):
+                k = int(input('Select an integer to use as a smoothing parameter: '))
+                dat = train_naive_bayes(img_type, k)
+                SELECT_IMAGE_MODE = 'y'
+                while SELECT_IMAGE_MODE in ('y', 'Y'):
+                    check_img_mode_str = input('Would you like to use [v]alidation or [t]est data? ')
+                    while check_img_mode_str not in ('v', 't', 'V', 'T'):
+                        check_img_mode_str = input('Invalid mode. Select [v]alidation or [t]est: ')
+                    TEST_NEW_IMAGES = 'y'
+                    while TEST_NEW_IMAGES in ('y', 'Y'):
+                        check_img_mode = Mode.VALIDATION if check_img_mode_str == 'v' else Mode.TEST
+                        images_str = input('Enter a range of indices to test, e.g. 2,4: ').split(',')
+                        images = range(int(images_str[0]), int(images_str[1]))
+                        output = classify_naive_bayes(dat, check_img_mode, images)
+                        check_correctness(output, check_img_mode, img_type)
+                        TEST_NEW_IMAGES = input('Would you like to test a new range? [y/n] ')
+                    SELECT_IMAGE_MODE = input('Would you like to test a different mode? [y/n] ')
+                SELECT_NEW_SMOOTHING = input('Would you like to test a different smoothing value? [y/n] ')
+            SELECT_IMAGE_TYPE = input('Would you like to test a different image type? [y/n] ')
+        print('Done. Exiting...')
