@@ -66,7 +66,7 @@ def read_image_data(mode, image_type):
     with open(parse_path(mode, image_type, False), "r", encoding="utf-8") as datafile:
         lines = datafile.readlines()
         number_of_images = len(lines) // image_type.rows
-        return np.array([np.array(lines[i*image_type.rows:(i+1)*image_type.rows]) for i in range(number_of_images)])
+        return np.array([(lines[i*image_type.rows:(i+1)*image_type.rows]) for i in range(number_of_images)])
 
 def read_label_data(mode, image_type):
     """Reads labels from a label file."""
