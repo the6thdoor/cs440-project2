@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Implementation of the Naive Bayes classifier."""
 from os import sys
 from collections import namedtuple
 from enum import Enum
@@ -8,7 +9,6 @@ import numpy as np
 # A ProcessedImageData object is a pair of numpy arrays: images processed into features, and labels.
 # It was more useful to organize data this way.
 LabeledImage = namedtuple('LabeledImage', ['features', 'label'])
-ProcessedImageData = namedtuple('ProcessedImageData', ['images', 'labels'])
 
 class ImageType(int, Enum):
     """A representation of the image type, either digit or face.
@@ -65,8 +65,9 @@ def read_image_data(mode, image_type):
     """Reads raw data from a data file."""
     with open(parse_path(mode, image_type, False), "r", encoding="utf-8") as datafile:
         lines = datafile.readlines()
-        number_of_images = len(lines) // image_type.rows
-        return np.array([(lines[i*image_type.rows:(i+1)*image_type.rows]) for i in range(number_of_images)])
+        num_rows = image_type.rows
+        num_images = len(lines) // num_rows
+        return np.array([(lines[i*num_rows:(i+1)*num_rows]) for i in range(num_images)])
 
 def read_label_data(mode, image_type):
     """Reads labels from a label file."""
@@ -89,110 +90,68 @@ def extract_features(raw_data):
     return features
 
 def read_labeled_images(mode, image_type):
+    """Reads data and label files and compiles them into an array of labeled images."""
     raw_data = read_image_data(mode, image_type)
     labels = read_label_data(mode, image_type)
     feature_data = [extract_features(x) for x in raw_data]
     return [LabeledImage(features, label) for (features, label) in zip(feature_data, labels)]
 
-def read_processed_images(mode, image_type):
-    raw_data = read_image_data(mode, image_type)
-    labels = read_label_data(mode, image_type)
-    feature_data = [extract_features(x) for x in raw_data]
-    return ProcessedImageData(feature_data, labels)
-
 def calc_prior(value, data):
-    #   count each value in the label_data and divide by number of labels to return the prior
+    """Counts each value in the label data and divides by number of labels to return the prior."""
     labels = np.array([label for (_, label) in data])
     count = np.count_nonzero(labels == value)
     print(count)
     print(len(labels))
     return count/len(labels)
 
-def calc_feature_prob(feature, index, value, image_data):
-    # for calculating the conditional probability of a certain pixel given a value
-    i = 0
-    count = 0
-    labels = image_data.labels
-    for l in labels:
-        if l == value:
-            image_feature = image_data.images[i][index]
-            if image_feature == feature:
-                count += 1
-        i += 1
-    return(count/np.count_nonzero(labels == value))
-
-def calc_feature_probs(value, image_data, image_type):
-    filtered_data = [labeled_image.features for labeled_image in image_data if labeled_image.label == value]
-    total_occurrences = len(filtered_data)
-    total_pixels = len(filtered_data[0])
+def calc_feature_probs(value, image_data):
+    """Computes the conditional probability for each feature-pixel pair, given a certain label."""
+    value_images = [image.features for image in image_data if image.label == value]
+    total_occurrences = len(value_images)
+    total_pixels = len(value_images[0])
     counts = np.zeros((3, total_pixels))
     for feature in range(3):
         for image_index in range(total_occurrences):
-            for pixel_index in range(len(filtered_data[0])):
-                if filtered_data[image_index][pixel_index] == feature:
+            for pixel_index in range(len(value_images[0])):
+                if value_images[image_index][pixel_index] == feature:
                     counts[feature][pixel_index] += 1
-
     return np.array([count_sub / total_pixels for count_sub in counts])
 
-def naive_bayes_one(image_type, i):
-    label = None
-    training_data = read_labeled_images(Mode.TRAINING, image_type)
-    validation_data = read_labeled_images(Mode.VALIDATION, image_type)
-    conditional_probabilities = [calc_feature_probs(val, training_data, ImageType.DIGIT) for val in range(image_type.categories)]
-    priors = np.array([calc_prior(val, training_data) for val in range(image_type.categories)])
-    features = validation_data[i].features
-    max = -math.inf
-    maxcat = -1
-    for j in range(image_type.categories):
-        prob = 0
-        for index, f in enumerate(features):
-            cond_prob = conditional_probabilities[j][f][index]
-            if cond_prob != 0:
-                prob += math.log(cond_prob)
-        prior = priors[j]
-        if prior != 0:
-            prob += math.log(prior)
-        print(f'Probability that image is {j}: {prob}')
-        if prob > max:
-            max = prob
-            maxcat = j
-    label = maxcat
-    return label
-
 def train_naive_bayes(image_type):
-    print(f'Training classifier...')
+    """Uses the training data of the image type to assemble Bayesian probability data."""
+    print('Training classifier...')
     training_data = read_labeled_images(Mode.TRAINING, image_type)
-    conditional_probabilities = [calc_feature_probs(val, training_data, ImageType.DIGIT) for val in range(image_type.categories)]
+    conditionals = [calc_feature_probs(val, training_data) for val in range(image_type.categories)]
     priors = np.array([calc_prior(val, training_data) for val in range(image_type.categories)])
     print(f'Trained classifier for image type = {image_type.name}')
-    return {'image_type': image_type, 'conditional_probabilities': conditional_probabilities, 'priors': priors}
+    return {'image_type': image_type, 'conditionals': conditionals, 'priors': priors}
 
 def classify_naive_bayes(classifier_data, mode, indices):
+    """Classifies the given images using the given probability data."""
     image_data = read_labeled_images(mode, classifier_data['image_type'])
     labels = []
     for i in indices:
-        features = image_data[i].features
-        max = -math.inf
+        prob_max = -math.inf
         maxcat = None
-        prob = 0
-        for j in range(classifier_data['image_type'].categories):
+        for current_label in range(classifier_data['image_type'].categories):
             prob = 0
-            for index, f in enumerate(features):
-                cond_prob = classifier_data['conditional_probabilities'][j][f][index]
+            for index, feature in enumerate(image_data[i].features):
+                cond_prob = classifier_data['conditionals'][current_label][feature][index]
                 if cond_prob != 0:
                     prob += math.log(cond_prob)
-            prior = classifier_data['priors'][j]
+            prior = classifier_data['priors'][current_label]
             if prior != 0:
                 prob += math.log(prior)
-            if prob > max:
-                max = prob
-                maxcat = j
+            if prob > prob_max:
+                prob_max = prob
+                maxcat = current_label
         labels.append((i, maxcat))
     for index, label in labels:
         print(f'Image {index} classified as: {label}')
     return labels
 
 def check_correctness(classifier_out, mode, image_type):
+    """Checks how many images were correctly classified."""
     labels = read_label_data(mode, image_type)
     num_correct = 0
     total = len(classifier_out)
@@ -201,35 +160,11 @@ def check_correctness(classifier_out, mode, image_type):
             num_correct += 1
     print(f'Got {num_correct} out of {total} correct: {(num_correct / total) * 100}%')
 
-def naive_bayes(image_type):
-    labels = []
-    training_data = read_labeled_images(Mode.TRAINING, image_type)
-    validation_data = read_labeled_images(Mode.VALIDATION, image_type)
-    conditional_probabilities = [calc_feature_probs(val, training_data, ImageType.DIGIT) for val in range(image_type.categories)]
-    priors = np.array([calc_prior(val, training_data) for val in range(image_type.categories)])
-    for i in range(len(validation_data)):
-        features = validation_data[i].features
-        max = -math.inf
-        maxcat = -1
-        prob = 0
-        for j in range(image_type.categories):
-            for index, f in enumerate(features):
-                cond_prob = conditional_probabilities[j][f][index]
-                if cond_prob != 0:
-                    prob += math.log(cond_prob)
-            prior = priors[j]
-            if prior != 0:
-                prob += math.log(prior)
-            if prob > max:
-                max = prob
-                maxcat = j
-        labels.append(maxcat)
-    return labels
-
 if __name__ == '__main__':
-    #print(calc_prior(5, read_label_data(Mode.TRAINING, ImageType.DIGIT)))
     if sys.argv[1] == 'debug':
         print('hi!')
     else:
-        print(calc_feature_prob(0, 400, 9, read_processed_images(Mode.TRAINING, ImageType.DIGIT)))
-        print(naive_bayes(ImageType.DIGIT))
+        # print('Select an image type, either [d]igit or [f]ace:')
+        # classifier_out = train_naive_bayes(sys.argv[1])
+        # print(naive_bayes(ImageType.DIGIT))
+        print('Command line API coming')
