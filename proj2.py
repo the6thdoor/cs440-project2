@@ -228,7 +228,7 @@ def run_classifier_perceptron(mode, image_type, indices, smoothing, percentage):
 
 def main():
     parser = argparse.ArgumentParser(description='Implementation of the Naive Bayes and Perceptron classifiers')
-    parser.add_argument('--classifier', metavar='C', help='classifier to use', choices=['BAYES', 'PERCEPTRON'], required=True)
+    parser.add_argument('--classifier', help='classifier to use', choices=['BAYES', 'PERCEPTRON'], required=True)
     parser.add_argument('--mode', help='image class to test', choices=['VALIDATION', 'TEST'], default='TEST')
     parser.add_argument('--type', help='image type to train', choices=['DIGIT', 'FACE'], required=True)
     parser.add_argument('--range', metavar=('START', 'END_EXCLUSIVE'), nargs=2, type=int, help='Range of data to test', required=True)
