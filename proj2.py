@@ -2,28 +2,36 @@
 """Implementation of the Naive Bayes classifier."""
 from collections import namedtuple
 from enum import Enum
+import argparse
 import numpy as np
 
-LabeledImage = namedtuple('LabeledImage', ['features', 'label'])
+LabeledImage = namedtuple('LabeledImage', ['features', 'label', 'index'])
 
 class ProcessedImageData:
     """A representation of the image data as a pair of arrays: features and labels.
     Also provides access to image data in LabeledImage form, to be accessed by index."""
-    def __init__(self, features, labels):
+    def __init__(self, features, labels, indices):
         self.features = features
         self.labels = labels
+        self.indices = indices
 
     def __iter__(self):
         size = min(len(self.features), len(self.labels))
         for i in range(size):
-            yield LabeledImage(self.features[i], self.labels[i])
+            yield LabeledImage(self.features[i], self.labels[i], self.indices[i])
 
     def __getitem__(self, i):
-        return LabeledImage(self.features[i], self.labels[i])
+        return LabeledImage(self.features[i], self.labels[i], self.indices[i])
 
     def __setitem__(self, i, tup):
         self.features[i] = tup[0]
         self.labels[i] = tup[1]
+        self.indices[i] = tup[2]
+
+    def sample_percent(self, percentage):
+        count = int(len(self.features) * (percentage / 100))
+        indices = np.random.randint(0, high=len(self.features), size=count)
+        return ProcessedImageData(self.features[indices], self.labels[indices], indices)
 
 class ImageType(int, Enum):
     """A representation of the image type, either digit or face.
@@ -89,24 +97,6 @@ def read_label_data(mode, image_type):
     """Reads labels from a label file."""
     return np.loadtxt(parse_path(mode, image_type, True), dtype=int, delimiter='\n')
 
-def extract_features_debug(raw_data):
-    """Parses raw text data into features, represented by an int from 0-2 for the pixel brightness.
-    0 is an empty pixel, 1 is a half-full pixel (+), and 2 is a full pixel (#).
-    """
-    width = len(raw_data[0])
-    num_features = len(raw_data) * width
-    features = np.zeros((num_features, 3), dtype=int)
-    for row, line in enumerate(raw_data):
-        for col, char in enumerate(line):
-            if char == ' ':
-                features[col + row * width] = 0
-            elif char == '+':
-                features[col + row * width] = 1
-            elif char == '#':
-                features[col + row * width] = 2
-    return features
-
-
 def extract_features(raw_data):
     """Parses raw text data into features, represented by an int from 0-2 for the pixel brightness.
     0 is an empty pixel, 1 is a half-full pixel (+), and 2 is a full pixel (#).
@@ -129,7 +119,7 @@ def read_processed_images(mode, image_type):
     raw_data = read_image_data(mode, image_type)
     labels = read_label_data(mode, image_type)
     features = np.apply_along_axis(extract_features, 1, raw_data)
-    return ProcessedImageData(features, labels)
+    return ProcessedImageData(features, labels, np.arange(len(features)))
 
 def calc_priors(categories, data):
     """Calculates the prior probabilities of each label by counting the occurrences of the label
@@ -155,6 +145,18 @@ def train_naive_bayes(image_type, smoothing):
     print(f'Trained classifier for image type = {image_type.name}')
     return {'image_type': image_type, 'conditionals': conditionals, 'priors': priors}
 
+def train_naive_bayes_partial(image_type, smoothing, percentage):
+    """Uses a partial set of the training data to train the Naive Bayes classifier."""
+    print('Loading training data...')
+    training_data = read_processed_images(Mode.TRAINING, image_type)
+    print(f'Selecting {percentage}% of the training data at random...')
+    partial_data = training_data.sample_percent(percentage)
+    print('Training classifier...')
+    conditionals = calc_feature_probs(image_type.categories, partial_data, smoothing)
+    priors = calc_priors(image_type.categories, partial_data)
+    print(f'Trained classifier for image type = {image_type.name}')
+    return {'image_type': image_type, 'conditionals': conditionals, 'priors': priors}
+
 def classify_naive_bayes(classifier_data, mode, indices):
     """Classifies the given images using the given probability data."""
     image_data = read_processed_images(mode, classifier_data['image_type'])
@@ -169,8 +171,8 @@ def classify_naive_bayes(classifier_data, mode, indices):
             log_conds = np.sum(log_conditionals[cur_label, image_data[i].features])
             probabilities[cur_label] = log_prior + log_conds
         labels.append((i, np.argmax(probabilities)))
-    for index, label in labels:
-        print(f'Image {index} classified as: {label}')
+    # for index, label in labels:
+    #     print(f'Image {index} classified as: {label}')
     return labels
 
 def check_correctness(classifier_out, mode, image_type):
@@ -183,7 +185,7 @@ def check_correctness(classifier_out, mode, image_type):
             num_correct += 1
     print(f'Got {num_correct} out of {total} correct: {(num_correct / total) * 100}%')
 
-if __name__ == '__main__':
+def old_main(argv):
     DEBUG_MODE = input('Skip execution for interactive debugging? [y/n] ')
     if DEBUG_MODE in ('y', 'Y'):
         print('Welcome.')
@@ -215,3 +217,32 @@ if __name__ == '__main__':
                 SELECT_NEW_SMOOTHING = input('Would you like to test a different smoothing value? [y/n] ')
             SELECT_IMAGE_TYPE = input('Would you like to test a different image type? [y/n] ')
         print('Done. Exiting...')
+
+def run_classifier_bayes(mode, image_type, indices, smoothing, percentage):
+    dat = train_naive_bayes(image_type, smoothing) if percentage == 100 else train_naive_bayes_partial(image_type, smoothing, percentage)
+    output = classify_naive_bayes(dat, mode, indices)
+    check_correctness(output, mode, image_type)
+
+def run_classifier_perceptron(mode, image_type, indices, smoothing, percentage):
+    pass
+
+def main():
+    parser = argparse.ArgumentParser(description='Implementation of the Naive Bayes and Perceptron classifiers')
+    parser.add_argument('--classifier', metavar='CLASSIFIER', help='classifier to use', choices=['BAYES', 'PERCEPTRON'], required=True)
+    parser.add_argument('--mode', metavar='MODE', help='image class to test', choices=['VALIDATION', 'TEST'], default='TEST')
+    parser.add_argument('--type', metavar='TYPE', help='image type to train', choices=['DIGIT', 'FACE'], required=True)
+    parser.add_argument('--range', metavar='ENDPOINTS', nargs=2, type=int, help='Range of data to test', required=True)
+    parser.add_argument('--trainpercent', metavar='PERCENT', type=int, help='the percent of training data to use', default=100)
+    parser.add_argument('--smoothing', metavar='K', type=int, help='Laplace smoothing constant', default=2)
+    parser.add_argument('--debug', help='skips execution for debugging purposes', action='store_true')
+    args = parser.parse_args()
+    image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
+    mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
+    run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
+    if not args.debug:
+        run(mode, image_type, range(args.range[0], args.range[1]), args.smoothing, args.trainpercent)
+    else:
+        print('Debug mode: Welcome.')
+
+if __name__ == '__main__':
+    main()
