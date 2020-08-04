@@ -228,11 +228,11 @@ def run_classifier_perceptron(mode, image_type, indices, smoothing, percentage):
 
 def main():
     parser = argparse.ArgumentParser(description='Implementation of the Naive Bayes and Perceptron classifiers')
-    parser.add_argument('--classifier', metavar='CLASSIFIER', help='classifier to use', choices=['BAYES', 'PERCEPTRON'], required=True)
-    parser.add_argument('--mode', metavar='MODE', help='image class to test', choices=['VALIDATION', 'TEST'], default='TEST')
-    parser.add_argument('--type', metavar='TYPE', help='image type to train', choices=['DIGIT', 'FACE'], required=True)
-    parser.add_argument('--range', metavar='ENDPOINTS', nargs=2, type=int, help='Range of data to test', required=True)
-    parser.add_argument('--trainpercent', metavar='PERCENT', type=int, help='the percent of training data to use', default=100)
+    parser.add_argument('--classifier', metavar='C', help='classifier to use', choices=['BAYES', 'PERCEPTRON'], required=True)
+    parser.add_argument('--mode', help='image class to test', choices=['VALIDATION', 'TEST'], default='TEST')
+    parser.add_argument('--type', help='image type to train', choices=['DIGIT', 'FACE'], required=True)
+    parser.add_argument('--range', metavar=('START', 'END_EXCLUSIVE'), nargs=2, type=int, help='Range of data to test', required=True)
+    parser.add_argument('--trainpercent', metavar='PERCENT', type=int, help='the percent of training data to use (int out of 100)', default=100)
     parser.add_argument('--smoothing', metavar='K', type=int, help='Laplace smoothing constant', default=2)
     parser.add_argument('--debug', help='skips execution for debugging purposes', action='store_true')
     args = parser.parse_args()
