@@ -2,5 +2,7 @@
 Intro to Machine Learning: Classifier Project
 
 ## Status
-- Naive Bayes: Done, requires data collection
-- Perceptron: In Progress
+|             | Implementation | Optimization | Statistics |
+| :---------: | :------------: | :----------: | :--------: |
+| Naive Bayes | Done           | Done         | WIP        |
+| Perceptron  | Done           | WIP          | WIP        |
