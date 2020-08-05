@@ -2,7 +2,7 @@
 Intro to Machine Learning: Classifier Project
 
 ## Status
-|             | Implementation | Optimization | Statistics |
-| :---------: | :------------: | :----------: | :--------: |
-| Naive Bayes | Done           | Done         | WIP        |
-| Perceptron  | Done           | WIP          | WIP        |
+|             | Implementation     | Optimization       | Statistics |
+| :---------: | :----------------: | :----------------: | :--------: |
+| Naive Bayes | :heavy_check_mark: | :heavy_check_mark: | :x:        |
+| Perceptron  | :heavy_check_mark: | :x:                | :x:        |
