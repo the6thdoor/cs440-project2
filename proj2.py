@@ -135,25 +135,16 @@ def calc_feature_probs(categories, image_data, smoothing):
     denoms = np.array([np.count_nonzero(image_data.labels == value) + (smoothing * 3) for value in range(categories)])
     return counts / denoms[:, np.newaxis, np.newaxis]
 
-def train_naive_bayes(image_type, smoothing):
+def train_naive_bayes(image_type, smoothing, percentage):
     """Uses the training data of the image type to assemble Bayesian probability data."""
     print('Loading training data...')
     training_data = read_processed_images(Mode.TRAINING, image_type)
+    if percentage != 100:
+        print(f'Selecting {percentage}% of the training data at random...')
+        training_data = training_data.sample_percent(percentage)
     print('Training classifier...')
     conditionals = calc_feature_probs(image_type.categories, training_data, smoothing)
     priors = calc_priors(image_type.categories, training_data)
-    print(f'Trained classifier for image type = {image_type.name}')
-    return {'image_type': image_type, 'conditionals': conditionals, 'priors': priors}
-
-def train_naive_bayes_partial(image_type, smoothing, percentage):
-    """Uses a partial set of the training data to train the Naive Bayes classifier."""
-    print('Loading training data...')
-    training_data = read_processed_images(Mode.TRAINING, image_type)
-    print(f'Selecting {percentage}% of the training data at random...')
-    partial_data = training_data.sample_percent(percentage)
-    print('Training classifier...')
-    conditionals = calc_feature_probs(image_type.categories, partial_data, smoothing)
-    priors = calc_priors(image_type.categories, partial_data)
     print(f'Trained classifier for image type = {image_type.name}')
     return {'image_type': image_type, 'conditionals': conditionals, 'priors': priors}
 
@@ -175,6 +166,39 @@ def classify_naive_bayes(classifier_data, mode, indices):
     #     print(f'Image {index} classified as: {label}')
     return labels
 
+def train_perceptron(image_type, iterations, percentage):
+    image_data = read_processed_images(Mode.TRAINING, image_type)
+    if percentage != 100:
+        image_data = image_data.sample_percent(percentage)
+    num_labels = len(image_data.labels)
+    num_pixels = len(image_data.features[0])
+    weights = np.random.rand(num_labels, num_pixels)
+    encoding = np.repeat(np.arange(3).reshape(1, 3), num_pixels, axis=0)
+    for _ in range(iterations):
+        for image in image_data:
+            encoded_features = encoding[image.features]
+            scores = np.array([np.dot(encoded_features, weights[cat]) for cat in range(image_type.categories)])
+            guess = np.argmax(scores)
+            if guess != image.label:
+                weights[image.label] += encoded_features
+                weights[guess] -= encoded_features
+    return {'image_type': image_type, 'weights': weights}
+
+def classify_perceptron(classifier_data, mode, indices):
+    image_type = classifier_data['image_type']
+    image_data = read_processed_images(mode, image_type)
+    num_pixels = len(image_data.features[0])
+    weights = classifier_data['weights']
+    encoding = np.repeat(np.arange(3).reshape(1, 3), num_pixels, axis=0)
+    labels = []
+    for i in indices:
+        image = image_data[i]
+        encoded_features = encoding[image.features]
+        scores = np.array([np.dot(encoded_features, weights[cat]) for cat in range(image_type.categories)])
+        guess = np.argmax(scores)
+        labels.append((i, guess)) # :)
+    return labels
+
 def check_correctness(classifier_out, mode, image_type):
     """Checks how many images were correctly classified."""
     labels = read_label_data(mode, image_type)
@@ -185,46 +209,30 @@ def check_correctness(classifier_out, mode, image_type):
             num_correct += 1
     print(f'Got {num_correct} out of {total} correct: {(num_correct / total) * 100}%')
 
-def old_main(argv):
-    DEBUG_MODE = input('Skip execution for interactive debugging? [y/n] ')
-    if DEBUG_MODE in ('y', 'Y'):
-        print('Welcome.')
-    else:
-        SELECT_IMAGE_TYPE = 'y'
-        while SELECT_IMAGE_TYPE in ('y', 'Y'):
-            img_type_str = input('Select an image type, either [d]igit or [f]ace: ')
-            while img_type_str not in ('d', 'f', 'D', 'F'):
-                img_type_str = input('Invalid image type. Please select either [d]igit or [f]ace: ')
-            img_type = ImageType.DIGIT if img_type_str == 'd' else ImageType.FACE
-            SELECT_NEW_SMOOTHING = 'y'
-            while SELECT_NEW_SMOOTHING in ('y', 'Y'):
-                k = int(input('Select an integer to use as a smoothing parameter: '))
-                dat = train_naive_bayes(img_type, k)
-                SELECT_IMAGE_MODE = 'y'
-                while SELECT_IMAGE_MODE in ('y', 'Y'):
-                    check_img_mode_str = input('Would you like to use [v]alidation or [t]est data? ')
-                    while check_img_mode_str not in ('v', 't', 'V', 'T'):
-                        check_img_mode_str = input('Invalid mode. Select [v]alidation or [t]est: ')
-                    TEST_NEW_IMAGES = 'y'
-                    while TEST_NEW_IMAGES in ('y', 'Y'):
-                        check_img_mode = Mode.VALIDATION if check_img_mode_str == 'v' else Mode.TEST
-                        images_str = input('Enter a range of indices to test, e.g. 2,4: ').split(',')
-                        images = range(int(images_str[0]), int(images_str[1]))
-                        output = classify_naive_bayes(dat, check_img_mode, images)
-                        check_correctness(output, check_img_mode, img_type)
-                        TEST_NEW_IMAGES = input('Would you like to test a new range? [y/n] ')
-                    SELECT_IMAGE_MODE = input('Would you like to test a different mode? [y/n] ')
-                SELECT_NEW_SMOOTHING = input('Would you like to test a different smoothing value? [y/n] ')
-            SELECT_IMAGE_TYPE = input('Would you like to test a different image type? [y/n] ')
-        print('Done. Exiting...')
-
-def run_classifier_bayes(mode, image_type, indices, smoothing, percentage):
-    dat = train_naive_bayes(image_type, smoothing) if percentage == 100 else train_naive_bayes_partial(image_type, smoothing, percentage)
+def run_classifier_bayes(mode, image_type, indices, percentage):
+    smoothing = input('Select a smoothing value [default=2]: ')
+    try:
+        smoothing = int(smoothing)
+    except ValueError:
+        print('Not a valid input. Using default smoothing value of 2.')
+        smoothing = 2
+    dat = train_naive_bayes(image_type, smoothing, percentage)
     output = classify_naive_bayes(dat, mode, indices)
     check_correctness(output, mode, image_type)
+    
+def run_classifier_perceptron_iterations(mode, image_type, indices, percentage, iterations):
+    dat = train_perceptron(image_type, iterations, percentage)
+    output = classify_perceptron(dat, mode, indices)
+    check_correctness(output, mode, image_type)
 
-def run_classifier_perceptron(mode, image_type, indices, smoothing, percentage):
-    pass
+def run_classifier_perceptron(mode, image_type, indices, percentage):
+    iterations = input('Select number of iterations [default=5]: ')
+    try:
+        iterations = int(iterations)
+    except ValueError:
+        print('Not a valid input. Using default number of iterations (5).')
+        iterations = 5
+    run_classifier_perceptron_iterations(mode, image_type, indices, percentage, iterations)
 
 def main():
     parser = argparse.ArgumentParser(description='Implementation of the Naive Bayes and Perceptron classifiers')
@@ -233,14 +241,13 @@ def main():
     parser.add_argument('--type', help='image type to train', choices=['DIGIT', 'FACE'], required=True)
     parser.add_argument('--range', metavar=('START', 'END_EXCLUSIVE'), nargs=2, type=int, help='Range of data to test', required=True)
     parser.add_argument('--trainpercent', metavar='PERCENT', type=int, help='the percent of training data to use (int out of 100)', default=100)
-    parser.add_argument('--smoothing', metavar='K', type=int, help='Laplace smoothing constant', default=2)
     parser.add_argument('--debug', help='skips execution for debugging purposes', action='store_true')
     args = parser.parse_args()
     image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
     mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
     run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
     if not args.debug:
-        run(mode, image_type, range(args.range[0], args.range[1]), args.smoothing, args.trainpercent)
+        run(mode, image_type, range(args.range[0], args.range[1]), args.trainpercent)
     else:
         print('Debug mode: Welcome.')
 
