@@ -163,21 +163,24 @@ def classify_naive_bayes(classifier_data, mode, indices):
             log_conds = np.sum(log_conditionals[cur_label, image_data[i].features])
             probabilities[cur_label] = log_prior + log_conds
         labels.append((i, np.argmax(probabilities)))
-    # for index, label in labels:
-    #     print(f'Image {index} classified as: {label}')
+    for index, label in labels:
+        print(f'Image {index} classified as: {label}')
     return labels
 
 def train_perceptron(image_type, iterations, percentage):
     """Learns the proper weights for the Perceptron classifier
        over a given number of iterations."""
+    print('Loading training data...')
     image_data = read_processed_images(Mode.TRAINING, image_type)
     if percentage != 100:
+        print(f'Selecting {percentage}% of the training data at random...')
         image_data = image_data.sample_percent(percentage)
+    print(f'Training classifier...')
     num_labels = len(image_data.labels)
     num_pixels = len(image_data.features[0])
     weights = np.random.rand(num_labels, num_pixels)
     encoding = np.repeat(np.arange(3).reshape(1, 3), num_pixels, axis=0)
-    for _ in range(iterations):
+    for i in range(iterations):
         for image in image_data:
             encoded_features = encoding[image.features]
             scores = np.array([np.dot(encoded_features, weights[cat]) for cat in range(image_type.categories)])
@@ -185,6 +188,8 @@ def train_perceptron(image_type, iterations, percentage):
             if guess != image.label:
                 weights[image.label] += encoded_features
                 weights[guess] -= encoded_features
+        print(f'Completed iteration {i}.')
+    print(f'Trained Perceptron classifier for image type = {image_type.name}')
     return {'image_type': image_type, 'weights': weights}
 
 def classify_perceptron(classifier_data, mode, indices):
@@ -202,6 +207,8 @@ def classify_perceptron(classifier_data, mode, indices):
         scores = np.array([np.dot(encoded_features, weights[cat]) for cat in range(image_type.categories)])
         guess = np.argmax(scores)
         labels.append((i, guess)) # :)
+    for index, label in labels:
+        print(f'Image {index} classified as: {label}')
     return labels
 
 def check_correctness(classifier_out, mode, image_type):
