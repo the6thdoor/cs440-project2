@@ -224,7 +224,6 @@ def check_correctness(classifier_out, mode, image_type):
 def run_classifier_bayes_smoothing(mode, image_type, indices, percentage, smoothing):
     """Runs the Naive Bayes classifier from start to finish
        using a fixed, predetermined smoothing constant."""
-    smoothing = input('Select a smoothing value [default=2]: ')
     dat = train_naive_bayes(image_type, smoothing, percentage)
     output = classify_naive_bayes(dat, mode, indices)
     check_correctness(output, mode, image_type)
