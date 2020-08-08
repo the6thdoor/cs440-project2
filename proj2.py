@@ -257,6 +257,34 @@ def run_classifier_perceptron(mode, image_type, indices, percentage):
         iterations = 5
     run_classifier_perceptron_iterations(mode, image_type, indices, percentage, iterations)
 
+def run_classifier_bayes_formetric(mode, image_type, indices, percentage, smoothing):
+    """Runs the Naive Bayes classifier from start to finish
+       using a fixed, predetermined smoothing constant."""
+    dat = train_naive_bayes(image_type, smoothing, percentage)
+    output = classify_naive_bayes(dat, mode, indices)
+    return check_correctness(output, mode, image_type)
+
+def check_correctness_formetric(classifier_out, mode, image_type):
+    """Checks how many images were correctly classified."""
+    labels = read_label_data(mode, image_type)
+    num_correct = 0
+    total = len(classifier_out)
+    for index, label in classifier_out:
+        if labels[index] == label:
+            num_correct += 1
+    return (num_correct / total) * 100
+
+def run_percentages():
+    perc = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    avg = []
+    for p in perc:
+        sum = 0
+        for i in range(5):
+            sum += run_classifier_bayes_formetric('TEST', 'DIGIT', range(0,100), p, 2)
+        avg.append(sum/5)
+    print(avg)
+
+
 def main():
     """Command line interface for the Naive Bayes and Perceptron classifiers."""
     parser = argparse.ArgumentParser(description='Implementation of the Naive Bayes and Perceptron classifiers')
@@ -276,4 +304,5 @@ def main():
         print('Debug mode: Welcome.')
 
 if __name__ == '__main__':
-    main()
+    #main()
+    run_percentages()
