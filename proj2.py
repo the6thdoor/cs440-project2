@@ -34,7 +34,7 @@ class ProcessedImageData:
         indices = np.random.randint(0, high=len(self.features), size=count)
         return ProcessedImageData(self.features[indices], self.labels[indices], indices)
 
-class ImageType(int, Enum):
+class ImageType(str, Enum):
     """A representation of the image type, either digit or face.
 
     Attributes
@@ -45,16 +45,16 @@ class ImageType(int, Enum):
         the number of possible labels
     """
     def __new__(cls, value, rows, categories):
-        obj = int.__new__(cls, value)
+        obj = str.__new__(cls, value)
         obj._value_ = value
         obj.rows = rows
         obj.categories = categories
         return obj
 
-    DIGIT = (0, 28, 10)
-    FACE = (1, 70, 2)
+    DIGIT = ("DIGIT", 28, 10)
+    FACE = ("FACE", 70, 2)
 
-class Mode(int, Enum):
+class Mode(str, Enum):
     """A representation of the mode of the image, either training, validation, or test.
 
     Attributes
@@ -63,14 +63,14 @@ class Mode(int, Enum):
         the string in the mode's file path which corresponds to the image mode
     """
     def __new__(cls, value, path_infix):
-        obj = int.__new__(cls, value)
+        obj = str.__new__(cls, value)
         obj._value_ = value
         obj.path_infix = path_infix
         return obj
 
-    TRAINING = (0, "training")
-    VALIDATION = (1, "validation")
-    TEST = (2, "test")
+    TRAINING = ("TRAINING", "training")
+    VALIDATION = ("VALIDATION", "validation")
+    TEST = ("TEST", "test")
 
 def print_image(data, index):
     """Prints a raw image (array of strings) to stdout."""
