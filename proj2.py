@@ -4,6 +4,8 @@ from collections import namedtuple
 from enum import Enum
 import argparse
 import numpy as np
+import time
+import matplotlib.pyplot as plt
 
 LabeledImage = namedtuple('LabeledImage', ['features', 'label', 'index'])
 
@@ -270,16 +272,20 @@ def run_classifier_perceptron(mode, image_type, args):
 def run_classifier_bayes_statistics(mode, image_type, indices, percentage, smoothing, debug):
     """Runs the Naive Bayes classifier from start to finish
        using a fixed, predetermined smoothing constant."""
+    start = time.time()
     dat = train_naive_bayes(image_type, smoothing, percentage)
+    end = time.time()
     output = classify_naive_bayes(dat, mode, indices, debug)
-    return check_correctness_statistics(output, mode, image_type)
+    return {'accuracy': check_correctness_statistics(output, mode, image_type), 'runtime': (end-start)}
 
 def run_classifier_perceptron_statistics(mode, image_type, indices, percentage, iterations, debug):
     """Runs the Perceptron classifier from start to finish
        over a fixed, predetermined number of iterations."""
+    start = time.time()
     dat = train_perceptron(image_type, iterations, percentage)
+    end = time.time()
     output = classify_perceptron(dat, mode, indices, debug)
-    return check_correctness_statistics(output, mode, image_type)
+    return {'accuracy': check_correctness_statistics(output, mode, image_type), 'runtime': (end-start)}
 
 def check_correctness_statistics(classifier_out, mode, image_type):
     """Returns the percentage of images that were correctly classified."""
@@ -306,15 +312,19 @@ def run_percentages_classifier(classifier, image_type, args):
     num_labels = len(image_type.image_data[Mode.TEST].labels)
     avg = []
     std = []
+    runtime = []
     for p in perc:
         if classifier == "BAYES":
-            acc = np.array([run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug) for _ in range(args.statloops)])
+            stats = np.array([run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug) for _ in range(args.statloops)])
         else:
-            acc = np.array([run_classifier_perceptron_statistics(Mode.TEST, image_type, range(num_labels), p, args.iterations, args.debug) for _ in range(args.statloops)])
-        avg.append(np.mean(acc))
-        std.append(np.std(acc))
+            stats = np.array([run_classifier_perceptron_statistics(Mode.TEST, image_type, range(num_labels), p, args.iterations, args.debug) for _ in range(args.statloops)])
+
+        avg.append(np.mean(np.array([stats[i]['accuracy'] for i in range(len(stats))])))
+        std.append(np.std(np.array([stats[i]['accuracy'] for i in range(len(stats))])))
+        runtime.append(np.mean(np.array([stats[i]['runtime'] for i in range(len(stats))])))
+
     for i in range(len(avg)):
-        print((i+1)*10, "% of training data, Accuracy: ", avg[i], " StdDev: ", std[i])
+        print((i+1)*10, "% of training data, Accuracy: ", avg[i], " StdDev: ", std[i]," Time to train: ", runtime[i])
 
 
 def main():
