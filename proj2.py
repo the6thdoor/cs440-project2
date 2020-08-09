@@ -326,19 +326,30 @@ def run_percentages_classifier(classifier, image_type, args):
     for i in range(len(avgacc)):
         print((i+1)*10, "% of training data, Accuracy: ", avgacc[i], " StdDev: ", std[i]," Time to train: ", runtime[i])
 
+    if(classifier == "BAYES"):
+        name = "Naive Bayes"
+    else:
+        name = "Perceptron"
+
     plt.plot(perc,avgacc)
+    plt.title(name)
     plt.xlabel('% of Training Data')
     plt.ylabel('Accuracy in %')
+    plt.grid()
     plt.show()
 
     plt.plot(perc, std)
+    plt.title(name)
     plt.xlabel('% of Training Data')
     plt.ylabel('Std Dev')
+    plt.grid()
     plt.show()
 
     plt.plot(perc, runtime)
+    plt.title(name)
     plt.xlabel('% of Training Data')
     plt.ylabel('Training Time')
+    plt.grid()
     plt.show()
 
 
