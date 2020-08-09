@@ -105,6 +105,18 @@ def read_image_data(mode, image_type):
     num_images = len(txtdata) // num_rows
     return txtdata.reshape((num_images, num_rows))
 
+<<<<<<< HEAD
+=======
+def read_image_mnist(mode):
+    if mode == Mode.TRAINING:
+        dat = None
+        # with open("data/mnistdata/train-images-idx3-ubyte.gz", "r") as f:
+    elif mode == Mode.TEST:
+        txtdata = np.loadtxt("data/mnistdata/t10k-images-idx3-ubyte")
+    else:
+        print("Invalid mode or validation mode not supported")
+
+>>>>>>> 6dd4fdf... Add option to test classifier against MNIST database (currently Perceptron only)
 def read_idx_raw(path):
     dat = None
     with open(path, "rb") as f:
@@ -456,12 +468,19 @@ def main():
     args = parser.parse_args()
     image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
     mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
+<<<<<<< HEAD
     if args.statsmode == 'y' or args.statsmode == 'Y':
         run_percentages_classifier(args.classifier, image_type, args)
     elif args.mnist:
         mnist_test(args)
     else:
         run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
+=======
+    run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
+    if args.mnist:
+        mnist_test(args)
+    else:
+>>>>>>> 6dd4fdf... Add option to test classifier against MNIST database (currently Perceptron only)
         run(mode, image_type, args)
 
 if __name__ == '__main__':
