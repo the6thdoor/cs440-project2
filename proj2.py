@@ -310,7 +310,7 @@ def run_percentages(debug):
 def run_percentages_classifier(classifier, image_type, args):
     perc = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     num_labels = len(image_type.image_data[Mode.TEST].labels)
-    avg = []
+    avgacc = []
     std = []
     runtime = []
     for p in perc:
@@ -319,12 +319,27 @@ def run_percentages_classifier(classifier, image_type, args):
         else:
             stats = np.array([run_classifier_perceptron_statistics(Mode.TEST, image_type, range(num_labels), p, args.iterations, args.debug) for _ in range(args.statloops)])
 
-        avg.append(np.mean(np.array([stats[i]['accuracy'] for i in range(len(stats))])))
+        avgacc.append(np.mean(np.array([stats[i]['accuracy'] for i in range(len(stats))])))
         std.append(np.std(np.array([stats[i]['accuracy'] for i in range(len(stats))])))
         runtime.append(np.mean(np.array([stats[i]['runtime'] for i in range(len(stats))])))
 
-    for i in range(len(avg)):
-        print((i+1)*10, "% of training data, Accuracy: ", avg[i], " StdDev: ", std[i]," Time to train: ", runtime[i])
+    for i in range(len(avgacc)):
+        print((i+1)*10, "% of training data, Accuracy: ", avgacc[i], " StdDev: ", std[i]," Time to train: ", runtime[i])
+
+    plt.plot(perc,avgacc)
+    plt.xlabel('% of Training Data')
+    plt.ylabel('Accuracy in %')
+    plt.show()
+
+    plt.plot(perc, std)
+    plt.xlabel('% of Training Data')
+    plt.ylabel('Std Dev')
+    plt.show()
+
+    plt.plot(perc, runtime)
+    plt.xlabel('% of Training Data')
+    plt.ylabel('Training Time')
+    plt.show()
 
 
 def main():
