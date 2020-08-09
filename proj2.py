@@ -156,9 +156,8 @@ def train_naive_bayes(image_type, smoothing, percentage):
     """Uses the training data of the image type to assemble Bayesian probability data."""
     print('Loading training data...')
     training_data = image_type.image_data[Mode.TRAINING]
-    if percentage != 100:
-        print(f'Selecting {percentage}% of the training data at random...')
-        training_data = training_data.sample_percent(percentage)
+    print(f'Selecting {percentage}% of the training data at random...')
+    training_data = training_data.sample_percent(percentage)
     print('Training classifier...')
     conditionals = calc_feature_probs(image_type.categories, training_data, smoothing)
     priors = calc_priors(image_type.categories, training_data)
@@ -189,9 +188,8 @@ def train_perceptron(image_type, iterations, percentage):
        over a given number of iterations."""
     print('Loading training data...')
     image_data = image_type.image_data[Mode.TRAINING]
-    if percentage != 100:
-        print(f'Selecting {percentage}% of the training data at random...')
-        image_data = image_data.sample_percent(percentage)
+    print(f'Selecting {percentage}% of the training data at random...')
+    image_data = image_data.sample_percent(percentage)
     print(f'Training classifier...')
     num_labels = len(image_data.labels)
     num_pixels = len(image_data.features[0])
