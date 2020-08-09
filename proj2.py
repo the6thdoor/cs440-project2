@@ -320,7 +320,7 @@ def main():
     parser.add_argument('--classifier', help='classifier to use', choices=['BAYES', 'PERCEPTRON'], required=True)
     parser.add_argument('--mode', help='image class to test', choices=['VALIDATION', 'TEST'], default='TEST')
     parser.add_argument('--type', help='image type to train', choices=['DIGIT', 'FACE'], required=True)
-    parser.add_argument('--range', metavar=('START', 'END_EXCLUSIVE'), nargs=2, type=int, help='Range of data to test', default=[0, 10])
+    parser.add_argument('--range', metavar=('START', 'END_EXCLUSIVE'), nargs=2, type=int, help='Range of data to test', default=[0, 100])
     parser.add_argument('--trainpercent', metavar='PERCENT', type=int, help='the percent of training data to use (int out of 100)', default=100, dest='percentage')
     parser.add_argument('--smoothing', type=int, help='Laplace smoothing constant (Naive Bayes)', default=2)
     parser.add_argument('--iterations', type=int, help='Number of times to iterate over training data (Perceptron)', default=5)
