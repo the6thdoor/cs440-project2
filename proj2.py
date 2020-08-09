@@ -247,7 +247,7 @@ def run_classifier_bayes(mode, image_type, args):
     """Runs the Naive Bayes classifier from start to finish,
        obtaining the smoothing constant from the command line args."""
     if (args.statistics):
-        run_percentages_classifier("BAYES", image_type, 5, args)
+        run_percentages_classifier("BAYES", image_type, args)
     else:
         run_classifier_bayes_smoothing(mode, image_type, range(args.range[0], args.range[1]), args.percentage, args.smoothing, args.debug)
 
@@ -262,7 +262,7 @@ def run_classifier_perceptron(mode, image_type, args):
     """Runs the Perceptron classifier from start to finish,
        obtaining the number of iterations from the command line args."""
     if (args.statistics):
-        run_percentages_classifier("PERCEPTRON", image_type, 5, args)
+        run_percentages_classifier("PERCEPTRON", image_type, args)
     else:
         run_classifier_perceptron_iterations(mode, image_type, range(args.range[0], args.range[1]), args.percentage, args.iterations, args.debug)
 
@@ -300,18 +300,18 @@ def run_percentages(debug):
         avg.append(sum/5)
     print(avg)
 
-def run_percentages_classifier(classifier, image_type, loops, args):
+def run_percentages_classifier(classifier, image_type, args):
     perc = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     avg = []
     num_labels = len(image_type.image_data[Mode.TEST].labels)
     for p in perc:
         sum = 0
-        for _ in range(loops):
+        for _ in range(args.statloops):
             if classifier == "BAYES":
                 sum += run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug)
             else:
                 sum += run_classifier_perceptron_statistics(Mode.TEST, image_type, range(num_labels), p, args.iterations, args.debug)
-        avg.append(sum/loops)
+        avg.append(sum/args.statloops)
     print(avg)
 
 def main():
@@ -326,6 +326,7 @@ def main():
     parser.add_argument('--iterations', type=int, help='Number of times to iterate over training data (Perceptron)', default=5)
     parser.add_argument('--debug', help='Outputs more detailed information to stdout', action='store_true')
     parser.add_argument('--statistics', help='gathers accuracy statistics with respect to amount of training data used', action='store_true')
+    parser.add_argument('--statloops', type=int, help='Number of times the classifier iterates over test data (Statistics only)', default=5)
     args = parser.parse_args()
     image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
     mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
