@@ -152,7 +152,6 @@ def calc_feature_probs(categories, image_data, smoothing):
 def train_naive_bayes(image_type, smoothing, percentage):
     """Uses the training data of the image type to assemble Bayesian probability data."""
     print('Loading training data...')
-    # training_data = read_processed_images(Mode.TRAINING, image_type)
     training_data = image_type.image_data[Mode.TRAINING]
     if percentage != 100:
         print(f'Selecting {percentage}% of the training data at random...')
@@ -165,7 +164,6 @@ def train_naive_bayes(image_type, smoothing, percentage):
 
 def classify_naive_bayes(classifier_data, mode, indices, debug):
     """Classifies the given images using the given probability data."""
-    # image_data = read_processed_images(mode, classifier_data['image_type'])
     image_data = classifier_data['image_type'].image_data[mode]
     labels = []
     log_priors = np.log(classifier_data['priors'])
@@ -187,7 +185,6 @@ def train_perceptron(image_type, iterations, percentage):
     """Learns the proper weights for the Perceptron classifier
        over a given number of iterations."""
     print('Loading training data...')
-    # image_data = read_processed_images(Mode.TRAINING, image_type)
     image_data = image_type.image_data[Mode.TRAINING]
     if percentage != 100:
         print(f'Selecting {percentage}% of the training data at random...')
@@ -213,7 +210,6 @@ def classify_perceptron(classifier_data, mode, indices, debug):
     """Uses the weights learned according to the Perceptron algorithm
        to classify a validation/test image."""
     image_type = classifier_data['image_type']
-    # image_data = read_processed_images(mode, image_type)
     image_data = image_type.image_data[mode]
     num_pixels = len(image_data.features[0])
     weights = classifier_data['weights']
@@ -232,7 +228,6 @@ def classify_perceptron(classifier_data, mode, indices, debug):
 
 def check_correctness(classifier_out, mode, image_type):
     """Checks how many images were correctly classified."""
-    # labels = read_label_data(mode, image_type)
     labels = image_type.image_data[mode].labels
     num_correct = 0
     total = len(classifier_out)
@@ -287,7 +282,6 @@ def run_classifier_perceptron_statistics(mode, image_type, indices, percentage, 
 
 def check_correctness_statistics(classifier_out, mode, image_type):
     """Returns the percentage of images that were correctly classified."""
-    # labels = read_label_data(mode, image_type)
     labels = image_type.image_data[mode].labels
     num_correct = 0
     total = len(classifier_out)
@@ -309,10 +303,9 @@ def run_percentages(debug):
 def run_percentages_classifier(classifier, image_type, loops, args):
     perc = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     avg = []
-    # num_labels = len(read_label_data(Mode.TEST, image_type))
     num_labels = len(image_type.image_data[Mode.TEST].labels)
     for p in perc:
-        sum  = 0
+        sum = 0
         for _ in range(loops):
             if classifier == "BAYES":
                 sum += run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug)
