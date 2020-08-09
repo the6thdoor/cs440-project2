@@ -303,17 +303,19 @@ def run_percentages(debug):
 
 def run_percentages_classifier(classifier, image_type, args):
     perc = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    avg = np.empty()
     num_labels = len(image_type.image_data[Mode.TEST].labels)
+    avg = []
+    std = []
     for p in perc:
-        sum = 0
-        for _ in range(args.statloops):
-            if classifier == "BAYES":
-                avg.append(run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug))
-            else:
-                sum += run_classifier_perceptron_statistics(Mode.TEST, image_type, range(num_labels), p, args.iterations, args.debug)
-        avg.append(sum/args.statloops)
-    print(avg)
+        if classifier == "BAYES":
+            acc = np.array([run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug) for _ in range(args.statloops)])
+        else:
+            acc = np.array([run_classifier_perceptron_statistics(Mode.TEST, image_type, range(num_labels), p, args.iterations, args.debug) for _ in range(args.statloops)])
+        avg.append(np.mean(acc))
+        std.append(np.std(acc))
+    for i in range(len(avg)):
+        print((i+1)*10, "% of training data, Accuracy: ", avg[i], " StdDev: ", std[i])
+
 
 def main():
     """Command line interface for the Naive Bayes and Perceptron classifiers."""
