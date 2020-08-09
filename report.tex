@@ -1,0 +1,48 @@
+\documentclass{article}
+\usepackage{amsmath, amssymb}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{authblk}
+\usepackage{libertine}
+\usepackage[libertine]{newtxmath}
+
+\title{Project 2 --- Face and Digit Classification}
+\author{Fernando Gonzalez}
+\author{Pranav Prakash}
+\author{Wanyun Liu}
+\affil{\textit {\{fdg17, pp618, wl432\}@scarletmail.rutgers.edu}}
+\date{\today}
+
+\begin{document}
+  \maketitle
+  \section{Classification Algorithms}
+  \subsection{Naive Bayes}
+  The Naive Bayes algorithm classifies images by keeping track of two sets of data.
+  First are the {\em prior probabilities}, which are determined by:
+  \begin{equation}
+  \text{Prior}(y) = \Pr(Y = y) = \frac{\text{number of images with label = y}}{\text{total number of images}}
+  \end{equation}
+  Our goal in using the Naive Bayes classifier is to compute the probability that a given image has a certain label,
+  given that a set of features is observed. To compute these conditional probabilities, we introduce Bayes' Rule:
+  \begin{equation}
+  \Pr(A \mid B) = \frac{\Pr(B \mid A)\Pr(A)}{\Pr(B)}
+  \end{equation}
+  Here, $A$ should refer to a {\em class}. The image classes are the set of all labels that can be given to an image.
+  When classifying digits, these are the actual digits $\{0, 1, ..., 9\}$. For faces, the classes are "{\em not-face}" and "{\em face}",
+  where "{\em not-face}" is represented by 0 or False, and "{\em face}" is represented by 1 or True.
+  We let $Y, y$ refer to classes, and $X, x$ refer to features, where capitals are random variables. From (1), we have:
+  \begin{equation}
+  \Pr(Y = y \mid X_i = x_i) = \frac{\Pr(X_i = x_i \mid Y = y)\Pr(Y = y)}{\Pr(X_i = x_i)}
+  \end{equation}
+  Observing from (1) that $\Pr(Y = y)$ is the prior probability $\text{Prior}(y)$, we have:
+  \begin{equation}
+  \Pr(Y = y \mid X_i = x_i) = \frac{\Pr(X_i = x_i \mid Y = y)\text{Prior}(y)}{\Pr(X_i = x_i)}
+  \end{equation}
+  \subsection{Perceptron}
+  \section{Implementation}
+  \subsection{Features}
+  \subsection{Results}
+  \subsubsection{Naive Bayes}
+  \subsubsection{Perceptron}
+  \subsection{Obstacles}
+\end{document}
