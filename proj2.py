@@ -103,15 +103,6 @@ def read_image_data(mode, image_type):
     num_images = len(txtdata) // num_rows
     return txtdata.reshape((num_images, num_rows))
 
-def read_image_mnist(mode):
-    if mode == Mode.TRAINING:
-        dat = None
-        # with open("data/mnistdata/train-images-idx3-ubyte.gz", "r") as f:
-    elif mode == Mode.TEST:
-        txtdata = np.loadtxt("data/mnistdata/t10k-images-idx3-ubyte")
-    else:
-        print("Invalid mode or validation mode not supported")
-
 def read_idx_raw(path):
     dat = None
     with open(path, "rb") as f:
