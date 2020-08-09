@@ -32,6 +32,9 @@ Naive Bayes, on digits, with smoothing = 10, testing against all test data, with
 
 python proj2.py --classifier PERCEPTRON --type FACE --iterations 20 --range 0 150
 Perceptron, on faces, with iterations = 20, testing against all test data.
+
+python proj2.py --classifier PERCEPTRON --type DIGIT --statistics --statloops 50
+Perceptron, on digits, computing accuracy statistics by averaging 50 trials (default is 5).
 ```
 
 Run `python proj2.py -h` or `python proj2.py --help` for similar information.
