@@ -4,6 +4,7 @@ from collections import namedtuple
 from enum import Enum
 import argparse
 import numpy as np
+import struct
 
 LabeledImage = namedtuple('LabeledImage', ['features', 'label', 'index'])
 
@@ -54,6 +55,7 @@ class ImageType(str, Enum):
 
     DIGIT = ("DIGIT", 28, 10)
     FACE = ("FACE", 70, 2)
+    MNIST = ("MNIST", None, 10)
 
     @property
     def image_data(self):
@@ -100,6 +102,42 @@ def read_image_data(mode, image_type):
     num_rows = image_type.rows
     num_images = len(txtdata) // num_rows
     return txtdata.reshape((num_images, num_rows))
+
+def read_image_mnist(mode):
+    if mode == Mode.TRAINING:
+        dat = None
+        # with open("data/mnistdata/train-images-idx3-ubyte.gz", "r") as f:
+    elif mode == Mode.TEST:
+        txtdata = np.loadtxt("data/mnistdata/t10k-images-idx3-ubyte")
+    else:
+        print("Invalid mode or validation mode not supported")
+
+def read_idx_raw(path):
+    dat = None
+    with open(path, "rb") as f:
+        magic = f.read(4)
+        mtype = magic[2]
+        num_headers = magic[3]
+        datatype = None
+        if mtype == 8:
+            datatype = np.ubyte
+        elif mtype == 9:
+            datatype = np.byte
+        elif mtype == 11:
+            datatype = np.short
+        elif mtype == 12:
+            datatype = np.int
+        elif mtype == 13:
+            datatype = np.float
+        elif mtype == 14:
+            datatype = np.double
+        fmt_string = 'I' * num_headers
+        headers = struct.unpack(f'>{fmt_string}', f.read(4 * num_headers))
+        dat = np.fromfile(f, dtype=datatype)
+        if num_headers == 3:
+            num_images, num_rows, num_columns = headers
+            dat = dat.reshape((num_images, num_rows * num_columns))
+    return dat
 
 def read_label_data(mode, image_type):
     """Reads labels from a label file."""
@@ -207,6 +245,27 @@ def train_perceptron(image_type, iterations, percentage):
     print(f'Trained Perceptron classifier for image type = {image_type.name}')
     return {'image_type': image_type, 'weights': weights}
 
+def train_perceptron_raw(image_data, iterations, percentage, categories):
+    """Learns the proper weights for the Perceptron classifier
+       over a given number of iterations."""
+    if percentage != 100:
+        print(f'Selecting {percentage}% of the training data at random...')
+        image_data = image_data.sample_percent(percentage)
+    print(f'Training classifier...')
+    num_labels = len(image_data.labels)
+    num_pixels = len(image_data.features[0])
+    weights = np.random.rand(num_labels, num_pixels)
+    for i in range(iterations):
+        for image in image_data:
+            scores = np.array([np.dot(image.features, weights[cat]) for cat in range(categories)])
+            guess = np.argmax(scores)
+            if guess != image.label:
+                weights[image.label] += image.features
+                weights[guess] -= image.features
+        print(f'Completed iteration {i}.')
+    print(f'Trained Perceptron classifier')
+    return weights
+
 def classify_perceptron(classifier_data, mode, indices, debug):
     """Uses the weights learned according to the Perceptron algorithm
        to classify a validation/test image."""
@@ -227,9 +286,34 @@ def classify_perceptron(classifier_data, mode, indices, debug):
             print(f'Image {index} classified as: {label}')
     return labels
 
+def classify_perceptron_raw(weights, image_data, indices, categories, debug):
+    """Uses the weights learned according to the Perceptron algorithm
+       to classify a validation/test image."""
+    num_pixels = len(image_data.features[0])
+    labels = []
+    for i in indices:
+        image = image_data[i]
+        scores = np.array([np.dot(image.features, weights[cat]) for cat in range(categories)])
+        guess = np.argmax(scores)
+        labels.append((i, guess)) # :)
+    if debug:
+        for index, label in labels:
+            print(f'Image {index} classified as: {label}')
+    return labels
+
 def check_correctness(classifier_out, mode, image_type):
     """Checks how many images were correctly classified."""
     labels = image_type.image_data[mode].labels
+    num_correct = 0
+    total = len(classifier_out)
+    for index, label in classifier_out:
+        if labels[index] == label:
+            num_correct += 1
+    print(f'Got {num_correct} out of {total} correct: {(num_correct / total) * 100}%')
+
+def check_correctness_raw(classifier_out, test_data):
+    """Checks how many images were correctly classified."""
+    labels = test_data.labels
     num_correct = 0
     total = len(classifier_out)
     for index, label in classifier_out:
@@ -258,6 +342,18 @@ def run_classifier_perceptron_iterations(mode, image_type, indices, percentage, 
     dat = train_perceptron(image_type, iterations, percentage)
     output = classify_perceptron(dat, mode, indices, debug)
     check_correctness(output, mode, image_type)
+
+def mnist_test(args):
+    train_imgs = read_idx_raw("data/mnistdata/train-images-idx3-ubyte")
+    train_labels = read_idx_raw("data/mnistdata/train-labels-idx1-ubyte")
+    test_imgs = read_idx_raw("data/mnistdata/t10k-images-idx3-ubyte")
+    test_labels = read_idx_raw("data/mnistdata/t10k-labels-idx1-ubyte")
+    mnist_train = ProcessedImageData(train_imgs, train_labels, np.arange(len(train_labels)))
+    mnist_test = ProcessedImageData(test_imgs, test_labels, np.arange(len(test_labels)))
+    # if args.classifier == 'PERCEPTRON':
+    weights = train_perceptron_raw(mnist_train, args.iterations, args.percentage, 10)
+    out = classify_perceptron_raw(weights, mnist_test, range(10000), 10, args.debug)
+    check_correctness_raw(out, mnist_test)
 
 def run_classifier_perceptron(mode, image_type, args):
     """Runs the Perceptron classifier from start to finish,
@@ -328,11 +424,15 @@ def main():
     parser.add_argument('--debug', help='Outputs more detailed information to stdout', action='store_true')
     parser.add_argument('--statistics', help='gathers accuracy statistics with respect to amount of training data used', action='store_true')
     parser.add_argument('--statloops', type=int, help='Number of times the classifier iterates over test data (Statistics only)', default=5)
+    parser.add_argument('--mnist', help='Test Perceptron classifier on MNIST database', action='store_true')
     args = parser.parse_args()
     image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
     mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
     run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
-    run(mode, image_type, args)
+    if args.mnist:
+        mnist_test(args)
+    else:
+        run(mode, image_type, args)
 
 if __name__ == '__main__':
     main()
