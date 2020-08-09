@@ -297,19 +297,19 @@ def run_percentages(debug):
     for p in perc:
         sum = 0
         for _ in range(5):
-            sum += run_classifier_bayes_statistics(Mode.TEST, ImageType.DIGIT, range(0,100), p, 2, debug)
+            sum += run_classifier_bayes_statistics(Mode.TEST, ImageType.DIGIT, range(0,150), p, 2, debug)
         avg.append(sum/5)
     print(avg)
 
 def run_percentages_classifier(classifier, image_type, args):
     perc = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    avg = []
+    avg = np.empty()
     num_labels = len(image_type.image_data[Mode.TEST].labels)
     for p in perc:
         sum = 0
         for _ in range(args.statloops):
             if classifier == "BAYES":
-                sum += run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug)
+                avg.append(run_classifier_bayes_statistics(Mode.TEST, image_type, range(num_labels), p, args.smoothing, args.debug))
             else:
                 sum += run_classifier_perceptron_statistics(Mode.TEST, image_type, range(num_labels), p, args.iterations, args.debug)
         avg.append(sum/args.statloops)
@@ -318,6 +318,7 @@ def run_percentages_classifier(classifier, image_type, args):
 def main():
     """Command line interface for the Naive Bayes and Perceptron classifiers."""
     parser = argparse.ArgumentParser(description='Implementation of the Naive Bayes and Perceptron classifiers')
+    parser.add_argument('--statsmode', help='whether to gather stats or not', choices=['y','Y','N','n'], default='n')
     parser.add_argument('--classifier', help='classifier to use', choices=['BAYES', 'PERCEPTRON'], required=True)
     parser.add_argument('--mode', help='image class to test', choices=['VALIDATION', 'TEST'], default='TEST')
     parser.add_argument('--type', help='image type to train', choices=['DIGIT', 'FACE'], required=True)
@@ -331,9 +332,12 @@ def main():
     args = parser.parse_args()
     image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
     mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
-    run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
-    run(mode, image_type, args)
+    if args.statsmode == 'y' or args.statsmode == 'Y':
+        run_percentages_classifier(args.classifier, image_type, args)
+    else:
+        run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
+        run(mode, image_type, args)
 
 if __name__ == '__main__':
     main()
-    #run_percentages()
+    #run_percentages_classifier("BAYES", 'DIGIT',  )
