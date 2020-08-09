@@ -324,16 +324,13 @@ def main():
     parser.add_argument('--trainpercent', metavar='PERCENT', type=int, help='the percent of training data to use (int out of 100)', default=100, dest='percentage')
     parser.add_argument('--smoothing', type=int, help='Laplace smoothing constant (Naive Bayes)', default=2)
     parser.add_argument('--iterations', type=int, help='Number of times to iterate over training data (Perceptron)', default=5)
-    parser.add_argument('--debug', help='skips execution for debugging purposes', action='store_true')
+    parser.add_argument('--debug', help='Outputs more detailed information to stdout', action='store_true')
     parser.add_argument('--statistics', help='gathers accuracy statistics with respect to amount of training data used', action='store_true')
     args = parser.parse_args()
     image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
     mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
     run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
-    if not args.debug:
-        run(mode, image_type, args)
-    else:
-        print('Debug mode: Welcome.')
+    run(mode, image_type, args)
 
 if __name__ == '__main__':
     main()

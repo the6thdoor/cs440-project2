@@ -16,6 +16,22 @@ The classifiers will default to testing against the first 100 images in the test
 
 To customize this, use the optional arguments `--iterations N`, `--smoothing N`, and `--range START END_EXCLUSIVE`.
 
-For more detailed output to stdout, use `--debug`. To gather statistics, use `--statistics`.
+For more detailed output to stdout, add the `--debug` flag. To gather statistics, use `--statistics` flag.
+Note that `--statistics` will ignore the range information and automatically test against all testing data.
+
+Examples:
+```
+python proj2.py --classifier PERCEPTRON --type DIGIT --statistics
+Gathers statistics for the Perceptron classifier trained for digits (with default iterations = 5).
+
+python proj2.py --classifier BAYES --type FACE --debug
+Gathers statistics for the Naive Bayes classifier trained for faces (with default smoothing = 2).
+
+python proj2.py --classifier BAYES --type DIGIT --smoothing 10 --range 0 1000 --debug
+Naive Bayes, on digits, with smoothing = 10, testing against all test data, with debug output.
+
+python proj2.py --classifier PERCEPTRON --type FACE --iterations 20 --range 0 150
+Perceptron, on faces, with iterations = 20, testing against all test data.
+```
 
 Run `python proj2.py -h` or `python proj2.py --help` for similar information.
