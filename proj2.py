@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Implementation of the Naive Bayes classifier."""
-from functools import cached_property
 from collections import namedtuple
 from enum import Enum
 import argparse
@@ -56,9 +55,11 @@ class ImageType(str, Enum):
     DIGIT = ("DIGIT", 28, 10)
     FACE = ("FACE", 70, 2)
 
-    @cached_property
+    @property
     def image_data(self):
-        return process_all_image_data(self)
+        if self._image_data == None:
+            self._image_data = process_all_image_data(self)
+        return self._image_data
 
 class Mode(str, Enum):
     """A representation of the mode of the image, either training, validation, or test.
