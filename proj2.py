@@ -433,26 +433,32 @@ def run_percentages_classifier(classifier, image_type, args):
     else:
         name = "Perceptron"
 
+    f = plt.figure()
     plt.plot(perc,avgacc)
     plt.title(name)
     plt.xlabel('% of Training Data')
     plt.ylabel('Accuracy in %')
     plt.grid()
-    plt.show()
+    # plt.show()
+    f.savefig(f"figures/{name}_accuracy_{image_type.name}.pdf", bbox_inches='tight')
 
+    f = plt.figure()
     plt.plot(perc, std)
     plt.title(name)
     plt.xlabel('% of Training Data')
     plt.ylabel('Std Dev')
     plt.grid()
-    plt.show()
+    # plt.show()
+    f.savefig(f"figures/{name}_stddev_{image_type.name}.pdf", bbox_inches='tight')
 
+    f = plt.figure()
     plt.plot(perc, runtime)
     plt.title(name)
     plt.xlabel('% of Training Data')
     plt.ylabel('Training Time')
     plt.grid()
-    plt.show()
+    # plt.show()
+    f.savefig(f"figures/{name}_time_{image_type.name}.pdf", bbox_inches='tight')
 
 
 def main():
