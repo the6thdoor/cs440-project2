@@ -49,17 +49,18 @@ class ImageType(str, Enum):
     categories : int
         the number of possible labels
     """
-    def __new__(cls, value, rows, categories):
+    def __new__(cls, value, rows, categories, feature_kinds):
         obj = str.__new__(cls, value)
         obj._value_ = value
         obj.rows = rows
         obj.categories = categories
+        obj.feature_kinds = feature_kinds
         obj._image_data = None
         return obj
 
-    DIGIT = ("DIGIT", 28, 10)
-    FACE = ("FACE", 70, 2)
-    MNIST = ("MNIST", None, 10)
+    DIGIT = ("DIGIT", 28, 10, 3)
+    FACE = ("FACE", 70, 2, 3)
+    MNIST = ("MNIST", None, 10, 256)
 
     @property
     def image_data(self):
@@ -186,11 +187,17 @@ def calc_priors(categories, data):
         counts[val] = np.count_nonzero(data.labels == val)
     return counts / len(data.labels)
 
-def calc_feature_probs(categories, image_data, smoothing, num_feature_kinds):
+def calc_feature_probs(image_type, image_data, smoothing):
     """Computes the conditional probability for each feature-pixel pair, given a certain label."""
-    encoding = np.repeat(np.arange(3).reshape(1, 3), num_pixels, axis=0)
-    counts = np.array([np.sum(image_data.features[image_data.labels == value], axis=0) + smoothing for value in range(categories)])
-    denoms = np.array([np.count_nonzero(image_data.labels == value) + (smoothing * 3) for value in range(categories)])
+    # features = image_data.features
+    # if image_type == ImageType.MNIST:
+    #     features = np.stack([np.where(features == i, [True], [False]) for i in range(image_type.feature_kinds)], axis=1)
+    counts = None
+    if image_type == ImageType.MNIST:
+        counts = np.array([np.count_nonzero(image_data.features[image_data.labels == value] == i) for i in range(image_type.feature_kinds)])
+    else:
+        counts = np.array([np.sum(image_data.features[image_data.labels == value], axis=0) + smoothing for value in range(image_type.categories)])
+    denoms = np.array([np.count_nonzero(image_data.labels == value) + (smoothing * image_type.feature_kinds) for value in range(image_type.categories)])
     return counts / denoms[:, np.newaxis, np.newaxis]
 
 def train_naive_bayes(image_type, smoothing, percentage):
@@ -200,7 +207,7 @@ def train_naive_bayes(image_type, smoothing, percentage):
     print(f'Selecting {percentage}% of the training data at random...')
     training_data = training_data.sample_percent(percentage)
     print('Training classifier...')
-    conditionals = calc_feature_probs(image_type.categories, training_data, smoothing)
+    conditionals = calc_feature_probs(image_type, training_data, smoothing)
     priors = calc_priors(image_type.categories, training_data)
     print(f'Trained classifier for image type = {image_type.name}')
     return {'image_type': image_type, 'conditionals': conditionals, 'priors': priors}
@@ -461,7 +468,6 @@ def main():
     parser.add_argument('--iterations', type=int, help='Number of times to iterate over training data (Perceptron)', default=5)
     parser.add_argument('--debug', help='Outputs more detailed information to stdout', action='store_true')
     parser.add_argument('--statloops', type=int, help='Number of times the classifier iterates over test data (Statistics only)', default=5)
-    parser.add_argument('--mnist', help='Test Perceptron classifier on MNIST database', action='store_true')
     args = parser.parse_args()
     # image_type = ImageType.DIGIT if args.type == 'DIGIT' else ImageType.FACE
     image_type = None
@@ -474,9 +480,8 @@ def main():
     mode = Mode.TEST if args.mode == 'TEST' else Mode.VALIDATION
     if args.statsmode == 'y' or args.statsmode == 'Y':
         run_percentages_classifier(args.classifier, image_type, args)
-    elif args.mnist:
-        mnist_test(args)
     else:
+        run = run_classifier_bayes if args.classifier == 'BAYES' else run_classifier_perceptron
         run(mode, image_type, args)
 
 if __name__ == '__main__':
