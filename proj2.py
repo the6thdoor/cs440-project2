@@ -189,14 +189,7 @@ def calc_priors(categories, data):
 
 def calc_feature_probs(image_type, image_data, smoothing):
     """Computes the conditional probability for each feature-pixel pair, given a certain label."""
-    # features = image_data.features
-    # if image_type == ImageType.MNIST:
-    #     features = np.stack([np.where(features == i, [True], [False]) for i in range(image_type.feature_kinds)], axis=1)
-    counts = None
-    if image_type == ImageType.MNIST:
-        counts = np.array([np.count_nonzero(image_data.features[image_data.labels == value] == i) for i in range(image_type.feature_kinds)])
-    else:
-        counts = np.array([np.sum(image_data.features[image_data.labels == value], axis=0) + smoothing for value in range(image_type.categories)])
+    counts = np.array([np.sum(image_data.features[image_data.labels == value], axis=0) + smoothing for value in range(image_type.categories)])
     denoms = np.array([np.count_nonzero(image_data.labels == value) + (smoothing * image_type.feature_kinds) for value in range(image_type.categories)])
     return counts / denoms[:, np.newaxis, np.newaxis]
 
