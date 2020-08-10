@@ -6,6 +6,8 @@
 \usepackage{libertine}
 \usepackage[libertine]{newtxmath}
 
+\DeclareMathOperator*{\argmax}{argmax}
+
 \title{Project 2 --- Face and Digit Classification}
 \author{Fernando Gonzalez}
 \author{Pranav Prakash}
@@ -28,21 +30,43 @@
   \Pr(A \mid B) = \frac{\Pr(B \mid A)\Pr(A)}{\Pr(B)}
   \end{equation}
   Here, $A$ should refer to a {\em class}. The image classes are the set of all labels that can be given to an image.
-  When classifying digits, these are the actual digits $\{0, 1, ..., 9\}$. For faces, the classes are "{\em not-face}" and "{\em face}",
+  When classifying digits, these are the actual digits $\{0, 1, \ldots, 9\}$. For faces, the classes are "{\em not-face}" and "{\em face}",
   where "{\em not-face}" is represented by 0 or False, and "{\em face}" is represented by 1 or True.
-  We let $Y, y$ refer to classes, and $X, x$ refer to features, where capitals are random variables. From (1), we have:
+  We let $Y, y$ refer to classes, and $X, x$ refer to features, where capitals are random variables. $N$ is the total number of features in an image.
+  From (1), we have:
   \begin{equation}
-  \Pr(Y = y \mid X_i = x_i) = \frac{\Pr(X_i = x_i \mid Y = y)\Pr(Y = y)}{\Pr(X_i = x_i)}
+  \Pr(Y = y \mid \bigcap_i^NX_i = x_i) = \frac{\Pr(\bigcap_i^NX_i = x_i \mid Y = y)\Pr(Y = y)}{\Pr(\bigcap_i^NX_i = x_i)}
   \end{equation}
-  Observing from (1) that $\Pr(Y = y)$ is the prior probability $\text{Prior}(y)$, we have:
+  Observing from (1) that $\Pr(Y = y)$ is the prior probability $\text{Prior}(y)$, and assuming the feature probabilities are conditionally independent, we have:
   \begin{equation}
-  \Pr(Y = y \mid X_i = x_i) = \frac{\Pr(X_i = x_i \mid Y = y)\text{Prior}(y)}{\Pr(X_i = x_i)}
+  \Pr(Y = y \mid \bigcap_i^NX_i = x_i) = \frac{\Pi_i^N\Pr(X_i = x_i \mid Y = y) \cdot \text{Prior}(y)}{\Pr(\bigcap_i^NX_i = x_i)}
   \end{equation}
+  By looking for the class which maximizes this value, we can simplify this further to get our final equation:
+  \begin{align}
+  \argmax_y (\Pr(Y = y \mid \bigcap_i^NX_i = x_i)) &= \argmax_y( \Pi_i^N\Pr(X_i = x_i \mid Y = y) \cdot \text{Prior}(y)) \\
+  &= \argmax_y \log (\text{Prior}(y) \cdot \Pi_i^N\Pr(X_i = x_i \mid Y = y)) \\
+  &= \argmax_y (\log \text{Prior}(y) + \log \sum_i^N\text{Cond}(i, x_i, y))
+  \end{align}
+  As stated previously, Prior$(y)$ is computed by finding the proportion of images with label $y$ compared to the total number of images.
+  Cond$(i, x_i, y)$, the probability that the feature at index $i$ has value $x_i$, given the label $y$, is given by:
+  \begin{equation}
+  \text{Cond}(i, x_i, y) = \frac{\text{number of times feature $i = x_i$ when label $= y$}}{\text{number of images where label $= y$}}
+  \end{equation}
+  The Naive Bayes classifier also has a smoothing parameter $k$, so that Cond$(i, x_i, y) \ne 0$, and to avoid direct usage of raw estimates.
+  Our final equation for Cond, which we use to compute the {\em conditional probabilities}, is:
+  \begin{equation}
+  \text{Cond}(i, x_i, y, k) = \frac{k + \text{number of times feature }i = x_i \text{when label}= y}{(\text{number of classes}\cdot k) + \text{number of images where label}= y}
+  \end{equation}
+  The training period of the Naive Bayes classifier consists of computing Prior$(y)$ and Cond$(i, x_i, y, k)$ for all classes $y$, all pixel indices $i$, and all possible feature values $x_i$.
+  This state is then used to classify images. The result of classification is the output of (7).
   \subsection{Perceptron}
   \section{Implementation}
   \subsection{Features}
+  Pixels were extracted to ternary features: 0 for an empty pixel, 1 for a "grey" pixel (represented by '+'), and 2 for a "black" pixel (represented by "\#").
+  These were directly used in the case of the Perceptron algorithm, but for the Naive Bayes algorithm, the features were mapped to indicator triples $[f(X_i), g(X_i), h(X_i)]$,
+  where $f(X_i) = 1$ if $X_i = 0$, $g(X_i) = 1$ if $X_i = 1$, $h(x_i) = 1$ if $X_i = 2$, and zero otherwise.
   \subsection{Results}
-  \subsubsection{Naive Bayes}
-  \subsubsection{Perceptron}
+  \subsubsection{Digit Classification}
+  \subsubsection{Face Classification}
   \subsection{Obstacles}
 \end{document}
